@@ -1,0 +1,39 @@
+.upload-zone {
+  width: 100%;
+}
+
+.upload-area {
+  border: 2px dashed #0dcaf0;
+  border-radius: 12px;
+  padding: 50px 20px;
+  text-align: center;
+  background-color: rgba(13, 202, 240, 0.05);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-area:hover {
+  background-color: rgba(13, 202, 240, 0.1);
+  border-color: #06d6ff;
+}
+
+.upload-area.active {
+  background-color: rgba(13, 202, 240, 0.15);
+  border-color: #06d6ff;
+  transform: scale(1.02);
+}
+
+.upload-area.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.upload-label {
+  cursor: pointer;
+  display: block;
+}
+
+.upload-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}

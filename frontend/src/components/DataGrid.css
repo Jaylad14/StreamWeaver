@@ -1,0 +1,64 @@
+.data-grid-container {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.grid-header {
+  padding: 15px 20px;
+  background-color: #0d0d0d;
+  border-bottom: 2px solid #0dcaf0;
+}
+
+.grid-header-title {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.grid-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  background-color: #151515;
+  border-bottom: 1px solid #333;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.grid-column-header {
+  padding: 12px 15px;
+  color: #0dcaf0;
+  font-weight: 600;
+  font-size: 14px;
+  border-right: 1px solid #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grid-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.grid-row:hover {
+  background-color: #222222;
+}
+
+.grid-cell {
+  padding: 10px 15px;
+  color: #e0e0e0;
+  font-size: 13px;
+  border-right: 1px solid #2a2a2a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-text {
+  display: block;
+}

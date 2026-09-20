@@ -4,15 +4,16 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
+
 app.use(express.json());
 
-// Routes
 const uploadRoutes = require('./routes/upload');
 app.use('/api/upload', uploadRoutes);
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', memory: process.memoryUsage() });
 });
