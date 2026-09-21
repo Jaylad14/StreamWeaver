@@ -3,6 +3,7 @@ const busboy = require('busboy');
 const fs = require('fs');
 const path = require('path');
 const CSVStreamParser = require('../utils/streamParser');
+const { saveFileInfo } = require('../utils/fileStore');
 
 const router = express.Router();
 
@@ -51,14 +52,22 @@ router.post('/', (req, res) => {
 
     try {
       const fileExt = path.extname(fileName).toLowerCase();
+      const fileId = fileName.split('-')[0];
       
       if (fileExt === '.json') {
         const data = JSON.parse(fs.readFileSync(uploadedFile, 'utf8'));
         const rows = Array.isArray(data) ? data : [data];
         const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
+        saveFileInfo(fileId, {
+          name: fileName,
+          path: uploadedFile,
+          type: 'json'
+        });
+
         res.json({
           success: true,
+          fileId: fileId,
           file: {
             name: fileName,
             path: uploadedFile,
@@ -85,8 +94,15 @@ router.post('/', (req, res) => {
           .on('end', () => {
             const metadata = parser.getMetadata();
 
+            saveFileInfo(fileId, {
+              name: fileName,
+              path: uploadedFile,
+              type: 'csv'
+            });
+
             res.json({
               success: true,
+              fileId: fileId,
               file: {
                 name: fileName,
                 path: uploadedFile,
