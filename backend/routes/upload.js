@@ -46,7 +46,10 @@ router.post('/', (req, res) => {
   });
 
   bb.on('close', () => {
+    console.log('Upload closed, processing...');
+    
     if (!uploadedFile) {
+      console.log('No file uploaded');
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
@@ -54,10 +57,17 @@ router.post('/', (req, res) => {
       const fileExt = path.extname(fileName).toLowerCase();
       const fileId = fileName.split('-')[0];
       
+      console.log('File extension:', fileExt);
+      console.log('File ID:', fileId);
+      
       if (fileExt === '.json') {
-        const data = JSON.parse(fs.readFileSync(uploadedFile, 'utf8'));
+        console.log('Parsing JSON file...');
+        const fileContent = fs.readFileSync(uploadedFile, 'utf8');
+        const data = JSON.parse(fileContent);
         const rows = Array.isArray(data) ? data : [data];
         const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+        console.log('JSON parsed, rows:', rows.length);
 
         saveFileInfo(fileId, {
           name: fileName,
@@ -65,6 +75,8 @@ router.post('/', (req, res) => {
           type: 'json'
         });
 
+        console.log('Sending response...');
+        
         res.json({
           success: true,
           fileId: fileId,

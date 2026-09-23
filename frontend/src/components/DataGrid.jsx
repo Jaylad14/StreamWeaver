@@ -4,25 +4,40 @@ export default function DataGrid({ fileId, data }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [startIndex, setStartIndex] = useState(0)
+  const [error, setError] = useState(null)
   
-  const columns = data.data.columns
+  if (!data || !data.data) {
+    return <div className="text-muted">No data loaded</div>
+  }
+
+  const columns = data.data.columns || []
   const rowsPerPage = 50
 
   useEffect(() => {
-    fetchData(0)
+    if (fileId) {
+      fetchData(0)
+    }
   }, [fileId])
 
   const fetchData = async (offset) => {
+    if (!fileId) return
+    
     setLoading(true)
+    setError(null)
     try {
       const response = await fetch(
         `http://localhost:5000/api/data/${fileId}?limit=${rowsPerPage}&offset=${offset}`
       )
       const result = await response.json()
-      setRows(result.rows)
-      setStartIndex(offset)
+      if (result.rows) {
+        setRows(result.rows)
+        setStartIndex(offset)
+      } else if (result.error) {
+        setError(result.error)
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error)
+      setError(error.message)
     } finally {
       setLoading(false)
     }
@@ -38,6 +53,14 @@ export default function DataGrid({ fileId, data }) {
     if (startIndex + rowsPerPage < data.data.rowCount) {
       fetchData(startIndex + rowsPerPage)
     }
+  }
+
+  if (error) {
+    return <div className="alert alert-danger">{error}</div>
+  }
+
+  if (!fileId) {
+    return <div className="text-muted">Waiting for file ID...</div>
   }
 
   return (
