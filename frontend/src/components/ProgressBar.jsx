@@ -6,6 +6,7 @@ export default function ProgressBar({ fileId, onComplete }) {
   const [rowsPerSec, setRowsPerSec] = useState(0)
   const [processed, setProcessed] = useState(0)
   const [total, setTotal] = useState(0)
+  const [transformedData, setTransformedData] = useState(null)
 
   useEffect(() => {
     if (!fileId || !isProcessing) return
@@ -27,7 +28,6 @@ export default function ProgressBar({ fileId, onComplete }) {
 
         if (data.percentage === 100) {
           setIsProcessing(false)
-          if (onComplete) onComplete()
         }
       }
     }
@@ -48,6 +48,7 @@ export default function ProgressBar({ fileId, onComplete }) {
     setProgress(0)
     setProcessed(0)
     setTotal(0)
+    setTransformedData(null)
 
     try {
       const response = await fetch(`http://localhost:5000/api/transform/${fileId}`, {
@@ -61,6 +62,14 @@ export default function ProgressBar({ fileId, onComplete }) {
 
       const result = await response.json()
       console.log('Transform complete:', result)
+
+      if (result.transformedData) {
+        setTransformedData(result.transformedData)
+      }
+
+      if (onComplete) {
+        onComplete(result.transformedData)
+      }
     } catch (error) {
       console.error('Transform failed:', error)
       setIsProcessing(false)
