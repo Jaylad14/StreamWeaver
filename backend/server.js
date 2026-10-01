@@ -32,6 +32,7 @@ app.use('/api/transform', transformRoutes);
 app.use('/api/bulkInsert', bulkInsertRoutes);
 
 const wsManager = new WSManager(server);
+transformRoutes.setWSManager(wsManager);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', memory: process.memoryUsage() });

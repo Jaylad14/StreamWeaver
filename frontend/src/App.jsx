@@ -2,6 +2,7 @@ import { useState } from 'react'
 import UploadZone from './components/UploadZone'
 import DataGrid from './components/DataGrid'
 import ColumnMapping from './components/ColumnMapping'
+import ProgressBar from './components/ProgressBar'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 function App() {
@@ -111,11 +112,19 @@ function App() {
             )}
 
             {fileId && uploadedData && (
-              <div className="row mt-4">
-                <div className="col-12">
-                  <DataGrid fileId={fileId} data={uploadedData} />
+              <>
+                <div className="row mt-4">
+                  <div className="col-12">
+                    <ProgressBar fileId={fileId} />
+                  </div>
                 </div>
-              </div>
+
+                <div className="row mt-4">
+                  <div className="col-12">
+                    <DataGrid fileId={fileId} data={uploadedData} />
+                  </div>
+                </div>
+              </>
             )}
           </>
         )}

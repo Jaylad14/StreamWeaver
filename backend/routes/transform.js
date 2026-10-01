@@ -6,6 +6,11 @@ const TransformEngine = require('../utils/transformEngine');
 
 const router = express.Router();
 const transformEngine = new TransformEngine();
+let wsManager = null;
+
+router.setWSManager = (manager) => {
+  wsManager = manager;
+};
 
 router.post('/:fileId', async (req, res) => {
   const { fileId } = req.params;
@@ -29,10 +34,25 @@ router.post('/:fileId', async (req, res) => {
     
     let rowCount = 0;
     let processedRows = [];
+    const startTime = Date.now();
+
+    const broadcastProgress = (processed, total) => {
+      if (wsManager) {
+        wsManager.broadcast({
+          type: 'progress',
+          fileId: fileId,
+          processed: processed,
+          total: total,
+          percentage: Math.round((processed / total) * 100),
+          rowsPerSec: Math.round(processed / ((Date.now() - startTime) / 1000))
+        });
+      }
+    };
 
     if (fileExt === 'json') {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       const rows = Array.isArray(data) ? data : [data];
+      const totalRows = rows.length;
 
       for (const row of rows) {
         let transformedRow = { ...row };
@@ -57,7 +77,13 @@ router.post('/:fileId', async (req, res) => {
 
         processedRows.push(transformedRow);
         rowCount++;
+
+        if (rowCount % 100 === 0) {
+          broadcastProgress(rowCount, totalRows);
+        }
       }
+
+      broadcastProgress(rowCount, totalRows);
     } else {
       const rl = readline.createInterface({
         input: fs.createReadStream(filePath),
@@ -65,6 +91,8 @@ router.post('/:fileId', async (req, res) => {
       });
 
       let headers = null;
+      let totalRows = 0;
+
       for await (const line of rl) {
         if (!line.trim()) continue;
 
@@ -101,7 +129,14 @@ router.post('/:fileId', async (req, res) => {
 
         processedRows.push(transformedRow);
         rowCount++;
+        totalRows++;
+
+        if (rowCount % 100 === 0) {
+          broadcastProgress(rowCount, totalRows);
+        }
       }
+
+      broadcastProgress(rowCount, totalRows);
     }
 
     res.json({
