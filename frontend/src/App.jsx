@@ -18,7 +18,7 @@ function App() {
     setUploadedData(null)
     setFileId(null)
     setTransformedData(null)
-    
+
     const formData = new FormData()
     formData.append('file', file)
 
@@ -27,17 +27,14 @@ function App() {
         method: 'POST',
         body: formData,
       })
-      
+
       if (!response.ok) {
         throw new Error('Upload failed')
       }
-      
+
       const data = await response.json()
-      console.log('Upload response data:', data)
-      
       setUploadedData(data)
       if (data.fileId) {
-        console.log('Setting fileId:', data.fileId)
         setFileId(data.fileId)
       }
       setShowMapping(false)
@@ -50,7 +47,7 @@ function App() {
   }
 
   const handleProcessComplete = (data) => {
-    setTransformedData(data)
+    setTransformedData(data.transformedData)
   }
 
   return (
@@ -101,7 +98,7 @@ function App() {
 
             <div className="row mt-4">
               <div className="col-12">
-                <button 
+                <button
                   className="btn btn-info"
                   onClick={() => setShowMapping(!showMapping)}
                 >

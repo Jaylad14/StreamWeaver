@@ -1,139 +1,88 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react';
 
 export default function ProgressBar({ fileId, onComplete }) {
-  const [progress, setProgress] = useState(0)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [rowsPerSec, setRowsPerSec] = useState(0)
-  const [processed, setProcessed] = useState(0)
-  const [total, setTotal] = useState(0)
-  const [transformedData, setTransformedData] = useState(null)
+  const [percentage, setPercentage] = useState(0);
+  const [processed, setProcessed] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [rowsPerSec, setRowsPerSec] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    if (!fileId || !isProcessing) return
+    if (!isProcessing) return;
 
-    const ws = new WebSocket('ws://localhost:5000')
-
-    ws.onopen = () => {
-      console.log('WebSocket connected')
-    }
+    const ws = new WebSocket('ws://localhost:5000');
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      
+      const data = JSON.parse(event.data);
       if (data.type === 'progress' && data.fileId === fileId) {
-        setProgress(data.percentage)
-        setProcessed(data.processed)
-        setTotal(data.total)
-        setRowsPerSec(data.rowsPerSec)
-
-        if (data.percentage === 100) {
-          setIsProcessing(false)
-        }
+        setProcessed(data.processed);
+        setTotal(data.total);
+        setPercentage(data.percentage);
+        setRowsPerSec(data.rowsPerSec);
       }
-    }
+    };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
-    }
-
-    return () => {
-      ws.close()
-    }
-  }, [fileId, isProcessing])
+    return () => ws.close();
+  }, [isProcessing, fileId]);
 
   const startProcessing = async () => {
-    if (!fileId) return
-
-    setIsProcessing(true)
-    setProgress(0)
-    setProcessed(0)
-    setTotal(0)
-    setTransformedData(null)
+    setIsProcessing(true);
+    setPercentage(0);
 
     try {
       const response = await fetch(`http://localhost:5000/api/transform/${fileId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mappings: {},
-          customCode: null
-        })
-      })
+        body: JSON.stringify({ mappings: {}, customCode: '' })
+      });
 
-      const result = await response.json()
-      console.log('Transform complete:', result)
+      const data = await response.json();
 
-      if (result.transformedData) {
-        setTransformedData(result.transformedData)
-      }
-
-      if (onComplete) {
-        onComplete(result.transformedData)
+      if (data.success) {
+        setPercentage(100);
+        onComplete({
+          transformedData: data.transformedData,
+          rowsProcessed: data.rowsProcessed
+        });
+      } else {
+        alert('Transform error: ' + data.error);
       }
     } catch (error) {
-      console.error('Transform failed:', error)
-      setIsProcessing(false)
+      alert('Failed to start transform: ' + error.message);
+    } finally {
+      setIsProcessing(false);
     }
-  }
-
-  if (!fileId) {
-    return null
-  }
+  };
 
   return (
-    <div className="card bg-dark border-info mt-4">
-      <div className="card-header bg-dark border-info">
-        <h5 className="card-title text-info mb-0">Process Data</h5>
-      </div>
+    <div className="card p-4 my-4 bg-dark border-info">
+      <h5 className="text-info">Process Data</h5>
 
-      <div className="card-body">
-        {!isProcessing && progress === 0 && (
-          <button 
-            className="btn btn-info w-100"
-            onClick={startProcessing}
-          >
-            Start Processing
-          </button>
-        )}
-
-        {isProcessing && (
-          <>
-            <div className="progress mb-3" style={{ height: '25px' }}>
-              <div
-                className="progress-bar bg-info"
-                role="progressbar"
-                style={{ width: `${progress}%` }}
-                aria-valuenow={progress}
-                aria-valuemin="0"
-                aria-valuemax="100"
-              >
-                {progress}%
-              </div>
+      {isProcessing ? (
+        <div>
+          <div className="progress mb-3" style={{ height: '25px' }}>
+            <div
+              className="progress-bar bg-success"
+              role="progressbar"
+              style={{ width: percentage + '%' }}
+              aria-valuenow={percentage}
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              {percentage}%
             </div>
-
-            <div className="row text-muted small">
-              <div className="col-md-4">
-                <p className="mb-0">Processed</p>
-                <p className="text-info fw-bold">{processed} / {total}</p>
-              </div>
-              <div className="col-md-4">
-                <p className="mb-0">Speed</p>
-                <p className="text-info fw-bold">{rowsPerSec} rows/sec</p>
-              </div>
-              <div className="col-md-4">
-                <p className="mb-0">Status</p>
-                <p className="text-info fw-bold">Processing...</p>
-              </div>
-            </div>
-          </>
-        )}
-
-        {progress === 100 && !isProcessing && (
-          <div className="alert alert-success mb-0">
-            ✅ Processing complete! {processed} rows processed.
           </div>
-        )}
-      </div>
+
+          <div className="row text-muted small">
+            <div className="col-md-4">Processed: {processed.toLocaleString()} / {total.toLocaleString()}</div>
+            <div className="col-md-4">Speed: {rowsPerSec.toLocaleString()} rows/sec</div>
+          </div>
+        </div>
+      ) : (
+        <button className="btn btn-primary" onClick={startProcessing}>
+          Start Processing
+        </button>
+      )}
     </div>
-  )
+  );
 }
