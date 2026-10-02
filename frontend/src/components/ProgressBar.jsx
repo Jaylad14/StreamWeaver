@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function ProgressBar({ fileId, onComplete }) {
+export default function ProgressBar({ fileId, customCode, onComplete }) {
   const [percentage, setPercentage] = useState(0);
   const [processed, setProcessed] = useState(0);
   const [total, setTotal] = useState(0);
@@ -33,7 +33,7 @@ export default function ProgressBar({ fileId, onComplete }) {
       const response = await fetch(`http://localhost:5000/api/transform/${fileId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mappings: {}, customCode: '' })
+        body: JSON.stringify({ mappings: {}, customCode: customCode || '' })
       });
 
       const data = await response.json();

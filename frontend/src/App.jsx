@@ -12,12 +12,14 @@ function App() {
   const [fileId, setFileId] = useState(null)
   const [showMapping, setShowMapping] = useState(false)
   const [transformedData, setTransformedData] = useState(null)
+  const [customCode, setCustomCode] = useState('')
 
   const handleUpload = async (file) => {
     setLoading(true)
     setUploadedData(null)
     setFileId(null)
     setTransformedData(null)
+    setCustomCode('')
 
     const formData = new FormData()
     formData.append('file', file)
@@ -119,7 +121,7 @@ function App() {
               <>
                 <div className="row mt-4">
                   <div className="col-12">
-                    <ProgressBar fileId={fileId} onComplete={handleProcessComplete} />
+                    <ProgressBar fileId={fileId} customCode={customCode} onComplete={handleProcessComplete} />
                   </div>
                 </div>
 

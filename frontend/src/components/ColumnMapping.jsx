@@ -1,118 +1,83 @@
-import { useState } from 'react'
+import React, { useState } from 'react';
+import CustomCode from './CustomCode';
 
 export default function ColumnMapping({ columns }) {
-  const [mappings, setMappings] = useState({})
-  const [selectedSource, setSelectedSource] = useState(null)
+  const [mappings, setMappings] = useState({});
+  const [customCode, setCustomCode] = useState('');
 
   const destinationFields = [
-    'id', 'first_name', 'last_name', 'email', 'age', 
-    'city', 'state', 'category_preference', 'account_status', 
-    'score', 'is_verified', 'filter_flags'
-  ]
+    'id', 'first_name', 'last_name', 'email', 'age', 'city', 'state',
+    'category_preference', 'account_status', 'score', 'is_verified', 'filter_flags'
+  ];
 
-  const handleMapColumn = (sourceCol, destCol) => {
+  const handleMap = (source, dest) => {
     setMappings({
       ...mappings,
-      [sourceCol]: destCol
-    })
-  }
+      [source]: dest
+    });
+  };
 
-  const handleRemoveMapping = (sourceCol) => {
-    const newMappings = { ...mappings }
-    delete newMappings[sourceCol]
-    setMappings(newMappings)
-  }
-
-  const saveMapping = () => {
-    const mappingData = JSON.stringify(mappings, null, 2)
-    const element = document.createElement('a')
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(mappingData))
-    element.setAttribute('download', 'mappings.json')
-    element.style.display = 'none'
-    document.body.appendChild(element)
-    element.click()
-    document.body.removeChild(element)
-  }
+  const handleDownload = () => {
+    const config = { mappings, customCode };
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mapping.json';
+    a.click();
+  };
 
   return (
     <div className="card bg-dark border-info">
-      <div className="card-header bg-dark border-info d-flex justify-content-between align-items-center">
-        <h5 className="text-info mb-0">Column Mapping</h5>
-        <button 
-          className="btn btn-sm btn-success"
-          onClick={saveMapping}
-        >
-          Save Mappings
-        </button>
+      <div className="card-header bg-dark border-info">
+        <h5 className="card-title text-info mb-0">Column Mapping & Transform</h5>
       </div>
 
       <div className="card-body">
         <div className="row">
-          <div className="col-md-5">
-            <h6 className="text-info mb-3">Source Columns</h6>
-            <div className="list-group" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {columns.map((col, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  className={`list-group-item list-group-item-action bg-dark text-start border-secondary ${selectedSource === col ? 'active border-info' : ''}`}
-                  onClick={() => setSelectedSource(col)}
-                >
+          <div className="col-md-6">
+            <h6 className="text-info">Source Columns</h6>
+            <div className="list-group bg-dark">
+              {columns.map((col) => (
+                <div key={col} className="list-group-item bg-dark border-secondary">
                   <div className="d-flex justify-content-between align-items-center">
-                    <span className="text-white">{col}</span>
-                    {mappings[col] && (
-                      <span className="badge bg-success">{mappings[col]}</span>
-                    )}
+                    <span className="text-light">{col}</span>
+                    <span className="badge bg-info text-dark">
+                      {mappings[col] ? mappings[col] : '?'}
+                    </span>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="col-md-2 d-flex align-items-center justify-content-center">
-            <div className="text-info text-center">
-              <div className="mb-2 fw-bold" style={{ fontSize: '20px' }}>→</div>
-              <small className="text-muted">Map to</small>
-            </div>
-          </div>
-
-          <div className="col-md-5">
-            <h6 className="text-info mb-3">Destination Fields</h6>
-            <div className="list-group" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {destinationFields.map((field, index) => (
+          <div className="col-md-6">
+            <h6 className="text-info">Destination Fields</h6>
+            <div className="list-group bg-dark">
+              {destinationFields.map((dest) => (
                 <button
-                  key={index}
-                  type="button"
-                  className={`list-group-item list-group-item-action bg-dark text-start border-secondary ${selectedSource && mappings[selectedSource] === field ? 'active border-info' : ''}`}
-                  onClick={() => selectedSource && handleMapColumn(selectedSource, field)}
+                  key={dest}
+                  className="list-group-item list-group-item-action bg-dark border-secondary text-info"
+                  onClick={() => {
+                    const source = columns[Object.values(mappings).indexOf(dest) >= 0 ? Object.keys(mappings).find(k => mappings[k] === dest) : -1];
+                    if (source) {
+                      handleMap(source, dest);
+                    }
+                  }}
                 >
-                  <span className="text-white">{field}</span>
+                  {dest}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {selectedSource && mappings[selectedSource] && (
-          <div className="alert alert-info mt-4 d-flex justify-content-between align-items-center mb-0">
-            <div>
-              <strong>{selectedSource}</strong> → <strong>{mappings[selectedSource]}</strong>
-            </div>
-            <button 
-              className="btn btn-sm btn-outline-danger"
-              onClick={() => handleRemoveMapping(selectedSource)}
-            >
-              Remove
-            </button>
-          </div>
-        )}
+        <CustomCode onCodeChange={setCustomCode} />
 
-        <div className="mt-3 text-center">
-          <p className="text-muted mb-0">
-            Mapped: <span className="text-info fw-bold">{Object.keys(mappings).length}</span> / {columns.length} columns
-          </p>
-        </div>
+        <button className="btn btn-success w-100 mt-3" onClick={handleDownload}>
+          Download Config
+        </button>
       </div>
     </div>
-  )
+  );
 }
