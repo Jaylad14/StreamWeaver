@@ -1,8 +1,8 @@
 const express = require('express');
 const fs = require('fs');
-const readline = require('readline');
 const { getFileInfo } = require('../utils/fileStore');
 const TransformEngine = require('../utils/transformEngine');
+const CSVParser = require('../utils/csvParser');
 
 const router = express.Router();
 const transformEngine = new TransformEngine();
@@ -14,84 +14,45 @@ router.setWSManager = (manager) => {
 
 router.post('/:fileId', async (req, res) => {
   const { fileId } = req.params;
-  const { mappings, customCode } = req.body;
-
-  console.log('=== TRANSFORM START ===');
-  console.log('FileID:', fileId);
-  console.log('Mappings:', mappings);
-  console.log('Custom Code:', customCode ? 'YES' : 'NO');
+  console.log('TRANSFORM REQUEST:', fileId);
 
   try {
     const fileInfo = getFileInfo(fileId);
-    console.log('File Info:', fileInfo ? 'FOUND' : 'NOT FOUND');
-
     if (!fileInfo) {
-      console.log('ERROR: File not found');
       return res.status(404).json({ error: 'File not found' });
     }
 
     const filePath = fileInfo.path;
     const fileExt = fileInfo.name.split('.').pop().toLowerCase();
+    console.log('FILE EXT:', fileExt);
 
-    let rowCount = 0;
     let processedRows = [];
-    const startTime = Date.now();
 
-    console.log('File type:', fileExt);
-    console.log('Starting to process rows...');
-
-    if (fileExt === 'json') {
+    if (fileExt === 'csv') {
+      console.log('PARSING CSV...');
+      const { headers, rows } = await CSVParser.parseFile(filePath);
+      console.log('HEADERS:', headers);
+      console.log('FIRST ROW:', rows[0]);
+      console.log('TOTAL ROWS:', rows.length);
+      processedRows = rows;
+    } else if (fileExt === 'json') {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       const rows = Array.isArray(data) ? data : [data];
-      const totalRows = rows.length;
-
-      console.log('Total rows to process:', totalRows);
-
-      for (let idx = 0; idx < rows.length; idx++) {
-        try {
-          const row = rows[idx];
-          let transformedRow = { ...row };
-
-          if (mappings) {
-            for (const [sourceCol, destCol] of Object.entries(mappings)) {
-              if (transformedRow[sourceCol] !== undefined) {
-                transformedRow[destCol] = transformedRow[sourceCol];
-                if (sourceCol !== destCol) {
-                  delete transformedRow[sourceCol];
-                }
-              }
-            }
-          }
-
-          processedRows.push(transformedRow);
-        } catch (rowError) {
-          console.log('Row error at', idx, ':', rowError.message);
-        }
-
-        rowCount++;
-
-        if (rowCount % 5000 === 0) {
-          console.log('Processed:', rowCount, '/', totalRows);
-        }
-      }
-
-      console.log('All rows processed. Total:', rowCount);
+      processedRows = rows;
     }
 
-    console.log('Sending response...');
+    console.log('SENDING RESPONSE');
     res.json({
       success: true,
-      rowsProcessed: rowCount,
+      rowsProcessed: processedRows.length,
       rowsSuccessful: processedRows.length,
       rowsFailed: 0,
       sampleRows: processedRows.slice(0, 5),
       transformedData: processedRows
     });
-
-    console.log('=== TRANSFORM COMPLETE ===');
   } catch (error) {
-    console.error('Transform error:', error);
-    res.status(500).json({ error: 'Transform failed: ' + error.message });
+    console.error('TRANSFORM ERROR:', error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
