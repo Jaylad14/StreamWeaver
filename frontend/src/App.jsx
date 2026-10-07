@@ -3,6 +3,7 @@ import UploadZone from './components/UploadZone'
 import DataGrid from './components/DataGrid'
 import ColumnMapping from './components/ColumnMapping'
 import ProgressBar from './components/ProgressBar'
+import DataPreview from './components/DataPreview'
 import InsertButton from './components/InsertButton'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
@@ -13,6 +14,7 @@ function App() {
   const [showMapping, setShowMapping] = useState(false)
   const [transformedData, setTransformedData] = useState(null)
   const [customCode, setCustomCode] = useState('')
+  const [rowsProcessed, setRowsProcessed] = useState(0)
 
   const handleUpload = async (file) => {
     setLoading(true)
@@ -50,6 +52,7 @@ function App() {
 
   const handleProcessComplete = (data) => {
     setTransformedData(data.transformedData)
+    setRowsProcessed(data.rowsProcessed)
   }
 
   return (
@@ -126,11 +129,19 @@ function App() {
                 </div>
 
                 {transformedData && (
-                  <div className="row mt-4">
-                    <div className="col-12">
-                      <InsertButton fileId={fileId} transformedData={transformedData} />
+                  <>
+                    <div className="row mt-4">
+                      <div className="col-12">
+                        <DataPreview fileId={fileId} transformedData={transformedData} rowsProcessed={rowsProcessed} />
+                      </div>
                     </div>
-                  </div>
+
+                    <div className="row mt-4">
+                      <div className="col-12">
+                        <InsertButton fileId={fileId} transformedData={transformedData} />
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 <div className="row mt-4">

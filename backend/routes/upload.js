@@ -2,149 +2,149 @@ const express = require('express');
 const busboy = require('busboy');
 const fs = require('fs');
 const path = require('path');
-const CSVStreamParser = require('../utils/streamParser');
 const { saveFileInfo } = require('../utils/fileStore');
+const CSVParser = require('../utils/csvParser');
+const FileValidator = require('../utils/fileValidator');
 
 const router = express.Router();
-
-const tmpDir = path.join(__dirname, '../tmp');
-if (!fs.existsSync(tmpDir)) {
-  fs.mkdirSync(tmpDir);
-}
+const TMP_DIR = path.join(__dirname, '../tmp');
 
 router.post('/', (req, res) => {
-  console.log('Upload request received');
-  
-  const bb = busboy({ headers: req.headers });
-  let fileSize = 0;
-  let uploadedFile = null;
-  let fileName = null;
+  const bb = busboy({ headers: req.headers, limits: { fileSize: 100 * 1024 * 1024 } });
+  let fileId = null;
+  let filePath = null;
+  let uploadError = null;
+  let responseSent = false;
+
+  const sendResponse = (statusCode, data) => {
+    if (!responseSent) {
+      responseSent = true;
+      res.status(statusCode).json(data);
+    }
+  };
 
   bb.on('file', (fieldname, file, info) => {
-    console.log('File received:', info.filename);
-    
-    fileName = `${Date.now()}-${info.filename}`;
-    const filePath = path.join(tmpDir, fileName);
+    const fileName = info.filename;
+    console.log('Upload request received');
+    console.log('File received:', fileName);
 
-    uploadedFile = filePath;
+    const fileNameValidation = FileValidator.validateFileName(fileName);
+    if (!fileNameValidation.valid) {
+      uploadError = fileNameValidation.error;
+      file.resume();
+      return;
+    }
+
+    fileId = Date.now().toString();
+    const sanitizedName = `${fileId}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    filePath = path.join(TMP_DIR, sanitizedName);
+
     const writeStream = fs.createWriteStream(filePath);
-
-    file.on('data', (chunk) => {
-      fileSize += chunk.length;
-    });
 
     file.pipe(writeStream);
 
     writeStream.on('finish', () => {
-      console.log(`File saved: ${fileName}`);
-    });
+      console.log('Upload closed, processing...');
 
-    writeStream.on('error', (err) => {
-      console.error('Write error:', err);
-      res.status(500).json({ error: 'Upload failed' });
-    });
-  });
-
-  bb.on('close', () => {
-    console.log('Upload closed, processing...');
-    
-    if (!uploadedFile) {
-      console.log('No file uploaded');
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    try {
-      const fileExt = path.extname(fileName).toLowerCase();
-      const fileId = fileName.split('-')[0];
-      
-      console.log('File extension:', fileExt);
+      const ext = fileName.split('.').pop().toLowerCase();
+      console.log('File extension:', ext);
       console.log('File ID:', fileId);
-      
-      if (fileExt === '.json') {
-        console.log('Parsing JSON file...');
-        const fileContent = fs.readFileSync(uploadedFile, 'utf8');
-        const data = JSON.parse(fileContent);
-        const rows = Array.isArray(data) ? data : [data];
-        const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
-        console.log('JSON parsed, rows:', rows.length);
+      try {
+        if (ext === 'json') {
+          console.log('Parsing JSON...');
+          const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          const rows = Array.isArray(data) ? data : [data];
+          const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
-        saveFileInfo(fileId, {
-          name: fileName,
-          path: uploadedFile,
-          type: 'json'
-        });
+          console.log('JSON parsed, rows:', rows.length);
 
-        console.log('Sending response...');
-        
-        res.json({
-          success: true,
-          fileId: fileId,
-          file: {
-            name: fileName,
-            path: uploadedFile,
-            sizeBytes: fileSize,
-            sizeMB: (fileSize / 1024 / 1024).toFixed(2),
-          },
-          data: {
+          saveFileInfo(fileId, {
+            name: sanitizedName,
+            path: filePath,
             rowCount: rows.length,
-            columns: columns,
-          },
-          memory: {
-            heapUsedMB: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2),
-            heapTotalMB: (process.memoryUsage().heapTotal / 1024 / 1024).toFixed(2),
-          },
-        });
-      } else {
-        const parser = new CSVStreamParser(uploadedFile);
-        const transformStream = parser.createTransformStream();
-        const readStream = fs.createReadStream(uploadedFile);
+            columns: columns
+          });
 
-        readStream.pipe(transformStream)
-          .on('data', (row) => {
-          })
-          .on('end', () => {
-            const metadata = parser.getMetadata();
+          sendResponse(200, {
+            success: true,
+            fileId: fileId,
+            file: {
+              name: fileName,
+              path: filePath,
+              sizeBytes: fs.statSync(filePath).size,
+              sizeMB: (fs.statSync(filePath).size / 1024 / 1024).toFixed(2)
+            },
+            data: {
+              rowCount: rows.length,
+              columns: columns
+            },
+            memory: {
+              heapUsedMB: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2),
+              heapTotalMB: (process.memoryUsage().heapTotal / 1024 / 1024).toFixed(2)
+            }
+          });
+
+          console.log('File saved:', sanitizedName);
+        } else if (ext === 'csv') {
+          console.log('Parsing CSV...');
+          CSVParser.parseFile(filePath).then(({ headers, rows }) => {
+            console.log('CSV parsed, rows:', rows.length);
 
             saveFileInfo(fileId, {
-              name: fileName,
-              path: uploadedFile,
-              type: 'csv'
+              name: sanitizedName,
+              path: filePath,
+              rowCount: rows.length,
+              columns: headers
             });
 
-            res.json({
+            sendResponse(200, {
               success: true,
               fileId: fileId,
               file: {
                 name: fileName,
-                path: uploadedFile,
-                sizeBytes: fileSize,
-                sizeMB: (fileSize / 1024 / 1024).toFixed(2),
+                path: filePath,
+                sizeBytes: fs.statSync(filePath).size,
+                sizeMB: (fs.statSync(filePath).size / 1024 / 1024).toFixed(2)
               },
               data: {
-                rowCount: metadata.rowCount,
-                columns: metadata.headers,
+                rowCount: rows.length,
+                columns: headers
               },
               memory: {
                 heapUsedMB: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2),
-                heapTotalMB: (process.memoryUsage().heapTotal / 1024 / 1024).toFixed(2),
-              },
+                heapTotalMB: (process.memoryUsage().heapTotal / 1024 / 1024).toFixed(2)
+              }
             });
-          })
-          .on('error', (err) => {
-            console.error('Parse error:', err);
-            res.status(500).json({ error: 'File parsing failed' });
+
+            console.log('File saved:', sanitizedName);
+          }).catch((error) => {
+            console.error('CSV parse error:', error.message);
+            fs.unlinkSync(filePath);
+            sendResponse(400, { error: 'CSV parsing error: ' + error.message });
           });
+        }
+      } catch (error) {
+        console.error('Processing error:', error.message);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        sendResponse(400, { error: 'Processing error: ' + error.message });
       }
-    } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ error: 'Processing failed: ' + error.message });
-    }
+    });
+
+    writeStream.on('error', (error) => {
+      console.error('Write error:', error.message);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      sendResponse(400, { error: 'Write error: ' + error.message });
+    });
   });
 
-  bb.on('error', (err) => {
-    console.error('Busboy error:', err);
-    res.status(500).json({ error: 'Upload failed' });
+  bb.on('error', (error) => {
+    console.error('Upload error:', error.message);
+    sendResponse(400, { error: error.message });
   });
 
   req.pipe(bb);
