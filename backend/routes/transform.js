@@ -3,6 +3,7 @@ const fs = require('fs');
 const { getFileInfo } = require('../utils/fileStore');
 const TransformEngine = require('../utils/transformEngine');
 const CSVParser = require('../utils/csvParser');
+const { cleanRows } = require('../utils/cleaner');
 
 const router = express.Router();
 const transformEngine = new TransformEngine();
@@ -14,6 +15,7 @@ router.setWSManager = (manager) => {
 
 router.post('/:fileId', async (req, res) => {
   const { fileId } = req.params;
+  const cleaning = req.body.cleaning || {};
   console.log('TRANSFORM REQUEST:', fileId);
 
   try {
@@ -32,23 +34,25 @@ router.post('/:fileId', async (req, res) => {
       console.log('PARSING CSV...');
       const { headers, rows } = await CSVParser.parseFile(filePath);
       console.log('HEADERS:', headers);
-      console.log('FIRST ROW:', rows[0]);
       console.log('TOTAL ROWS:', rows.length);
       processedRows = rows;
     } else if (fileExt === 'json') {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      const rows = Array.isArray(data) ? data : [data];
-      processedRows = rows;
+      processedRows = Array.isArray(data) ? data : [data];
     }
+
+    const { rows: cleanedRows, report: cleaningReport } = cleanRows(processedRows, cleaning);
+    console.log('CLEANING REPORT:', cleaningReport);
 
     console.log('SENDING RESPONSE');
     res.json({
       success: true,
-      rowsProcessed: processedRows.length,
-      rowsSuccessful: processedRows.length,
+      rowsProcessed: cleanedRows.length,
+      rowsSuccessful: cleanedRows.length,
       rowsFailed: 0,
-      sampleRows: processedRows.slice(0, 5),
-      transformedData: processedRows
+      cleaningReport,
+      sampleRows: cleanedRows.slice(0, 5),
+      transformedData: cleanedRows
     });
   } catch (error) {
     console.error('TRANSFORM ERROR:', error.message);
