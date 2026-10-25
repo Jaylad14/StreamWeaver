@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function ProgressBar({ fileId, customCode, onComplete }) {
   const [percentage, setPercentage] = useState(0);
@@ -6,6 +6,8 @@ export default function ProgressBar({ fileId, customCode, onComplete }) {
   const [total, setTotal] = useState(0);
   const [rowsPerSec, setRowsPerSec] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const startTimeRef = useRef(null);
 
   useEffect(() => {
     if (!isProcessing) return;
@@ -25,9 +27,30 @@ export default function ProgressBar({ fileId, customCode, onComplete }) {
     return () => ws.close();
   }, [isProcessing, fileId]);
 
+  useEffect(() => {
+    if (!isProcessing) return;
+
+    const interval = setInterval(() => {
+      setElapsed((Date.now() - startTimeRef.current) / 1000);
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isProcessing]);
+
+  const remaining = rowsPerSec > 0 ? Math.max(0, (total - processed) / rowsPerSec) : 0;
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
   const startProcessing = async () => {
     setIsProcessing(true);
     setPercentage(0);
+    setProcessed(0);
+    setElapsed(0);
+    startTimeRef.current = Date.now();
 
     try {
       const response = await fetch(`http://localhost:5000/api/transform/${fileId}`, {
@@ -73,9 +96,31 @@ export default function ProgressBar({ fileId, customCode, onComplete }) {
             </div>
           </div>
 
-          <div className="row text-muted small">
-            <div className="col-md-4">Processed: {processed.toLocaleString()} / {total.toLocaleString()}</div>
-            <div className="col-md-4">Speed: {rowsPerSec.toLocaleString()} rows/sec</div>
+          <div className="row g-2 text-center">
+            <div className="col-md-3">
+              <div className="border rounded p-2">
+                <div className="fw-bold">{processed.toLocaleString()} / {total.toLocaleString()}</div>
+                <div className="small text-muted">Processed</div>
+              </div>
+            </div>
+            <div className="col-md-3">
+              <div className="border rounded p-2">
+                <div className="fw-bold">{rowsPerSec.toLocaleString()}</div>
+                <div className="small text-muted">Rows/sec</div>
+              </div>
+            </div>
+            <div className="col-md-3">
+              <div className="border rounded p-2">
+                <div className="fw-bold">{formatTime(elapsed)}</div>
+                <div className="small text-muted">Time Elapsed</div>
+              </div>
+            </div>
+            <div className="col-md-3">
+              <div className="border rounded p-2">
+                <div className="fw-bold text-warning">{formatTime(remaining)}</div>
+                <div className="small text-muted">Est. Remaining</div>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
