@@ -10,10 +10,10 @@ const formatSize = (size) => {
 export default function PostUploadPanel({ uploadedData, step = 1 }) {
   const d = uploadedData || {};
   const info = d.data || {};
-  const name = d.name ?? d.fileName ?? '-';
-  const rows = d.rowCount ?? d.rows ?? '-';
+  const name = d.file?.name ?? '-';
+  const rows = d.data?.rowCount ?? '-';
   const columns = info.columns?.length ?? d.columns?.length ?? '-';
-  const size = formatSize(d.size ?? d.fileSize);
+  const size = d.file?.sizeMB != null ? d.file.sizeMB + ' MB' : '-';
 
   const stats = [
     { label: 'Rows', value: typeof rows === 'number' ? rows.toLocaleString() : rows },

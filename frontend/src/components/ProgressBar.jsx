@@ -13,29 +13,9 @@ export default function ProgressBar({ fileId, customCode, columns = [], onComple
 
   useEffect(() => {
     if (!isProcessing) return;
-
-    const ws = new WebSocket('ws://localhost:5000');
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'progress' && data.fileId === fileId) {
-        setProcessed(data.processed);
-        setTotal(data.total);
-        setPercentage(data.percentage);
-        setRowsPerSec(data.rowsPerSec);
-      }
-    };
-
-    return () => ws.close();
-  }, [isProcessing, fileId]);
-
-  useEffect(() => {
-    if (!isProcessing) return;
-
     const interval = setInterval(() => {
       setElapsed((Date.now() - startTimeRef.current) / 1000);
     }, 100);
-
     return () => clearInterval(interval);
   }, [isProcessing]);
 
@@ -47,14 +27,35 @@ export default function ProgressBar({ fileId, customCode, columns = [], onComple
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
+  const connect = () =>
+    new Promise((resolve, reject) => {
+      const ws = new WebSocket('ws://localhost:5000');
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'progress' && data.fileId === fileId) {
+          setProcessed(data.processed);
+          setTotal(data.total);
+          setPercentage(data.percentage);
+          setRowsPerSec(data.rowsPerSec);
+        }
+      };
+      ws.onopen = () => resolve(ws);
+      ws.onerror = () => reject(new Error('Could not connect to progress server'));
+    });
+
   const startProcessing = async () => {
     setIsProcessing(true);
     setPercentage(0);
     setProcessed(0);
+    setTotal(0);
+    setRowsPerSec(0);
     setElapsed(0);
     startTimeRef.current = Date.now();
 
+    let ws = null;
     try {
+      ws = await connect();
+
       const response = await fetch(`http://localhost:5000/api/transform/${fileId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,6 +77,7 @@ export default function ProgressBar({ fileId, customCode, columns = [], onComple
     } catch (error) {
       alert('Failed to start transform: ' + error.message);
     } finally {
+      if (ws) ws.close();
       setIsProcessing(false);
     }
   };

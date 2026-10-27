@@ -13,9 +13,25 @@ router.setWSManager = (manager) => {
   wsManager = manager;
 };
 
+const sendProgress = (fileId, processed, total, startedAt) => {
+  if (!wsManager) return;
+  const elapsed = (Date.now() - startedAt) / 1000 || 0.001;
+  const percentage = total ? Math.round((processed / total) * 100) : 0;
+  wsManager.broadcast({
+    type: 'progress',
+    fileId,
+    processed,
+    total,
+    percentage,
+    rowsPerSec: Math.round(processed / elapsed),
+    errorCount: 0
+  });
+};
+
 router.post('/:fileId', async (req, res) => {
   const { fileId } = req.params;
   const cleaning = req.body.cleaning || {};
+  const startedAt = Date.now();
   console.log('TRANSFORM REQUEST:', fileId);
 
   try {
@@ -41,7 +57,10 @@ router.post('/:fileId', async (req, res) => {
       processedRows = Array.isArray(data) ? data : [data];
     }
 
+    const total = processedRows.length;
+    sendProgress(fileId, 0, total, startedAt);
     const { rows: cleanedRows, report: cleaningReport } = cleanRows(processedRows, cleaning);
+    sendProgress(fileId, total, total, startedAt);
     console.log('CLEANING REPORT:', cleaningReport);
 
     console.log('SENDING RESPONSE');

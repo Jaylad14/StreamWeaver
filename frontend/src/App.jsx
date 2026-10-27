@@ -76,33 +76,6 @@ function App() {
         <PostUploadPanel uploadedData={uploadedData} step={uploadedData ? 3 : 1} />
         {uploadedData && (
           <>
-            <div className="row mt-5">
-              <div className="col-12">
-                <div className="card bg-dark border-info">
-                  <div className="card-body">
-                    <h5 className="card-title text-info">File Info</h5>
-                    <div className="row">
-                      <div className="col-md-3 mb-3">
-                        <p className="text-muted mb-1">File Name</p>
-                        <p className="text-white fw-bold">{uploadedData.file.name}</p>
-                      </div>
-                      <div className="col-md-3 mb-3">
-                        <p className="text-muted mb-1">File Size</p>
-                        <p className="text-white fw-bold">{uploadedData.file.sizeMB} MB</p>
-                      </div>
-                      <div className="col-md-3 mb-3">
-                        <p className="text-muted mb-1">Rows</p>
-                        <p className="text-white fw-bold">{uploadedData.data.rowCount}</p>
-                      </div>
-                      <div className="col-md-3 mb-3">
-                        <p className="text-muted mb-1">Columns</p>
-                        <p className="text-white fw-bold">{uploadedData.data.columns.length}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {uploadedData && (
               <div className="row mt-4">

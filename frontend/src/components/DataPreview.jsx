@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
+const formatCell = (value) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
 export default function DataPreview({ fileId, transformedData, rowsProcessed }) {
   const [previewRows, setPreviewRows] = useState([]);
   const [showAll, setShowAll] = useState(false);
@@ -39,8 +45,8 @@ export default function DataPreview({ fileId, transformedData, rowsProcessed }) 
               <tr key={idx}>
                 {columns.map((col) => (
                   <td key={col} className="small">
-                    {String(row[col] || '').substring(0, 50)}
-                    {String(row[col] || '').length > 50 ? '...' : ''}
+                    {formatCell(row[col]).substring(0, 50)}
+                    {formatCell(row[col]).length > 50 ? '...' : ''}
                   </td>
                 ))}
               </tr>
