@@ -1,3 +1,7 @@
+import AppNavbar from './components/AppNavbar';
+import Hero from './components/Hero';
+import PostUploadPanel from './components/PostUploadPanel';
+import CircuitBackground from './components/CircuitBackground';
 import { useState } from 'react'
 import UploadZone from './components/UploadZone'
 import DataGrid from './components/DataGrid'
@@ -11,7 +15,6 @@ function App() {
   const [uploadedData, setUploadedData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [fileId, setFileId] = useState(null)
-  const [showMapping, setShowMapping] = useState(false)
   const [transformedData, setTransformedData] = useState(null)
   const [customCode, setCustomCode] = useState('')
   const [rowsProcessed, setRowsProcessed] = useState(0)
@@ -41,7 +44,6 @@ function App() {
       if (data.fileId) {
         setFileId(data.fileId)
       }
-      setShowMapping(false)
     } catch (error) {
       console.error('Upload failed:', error)
       alert('Upload failed: ' + error.message)
@@ -56,21 +58,22 @@ function App() {
   }
 
   return (
-    <div className="bg-dark text-white min-vh-100 py-5">
+    <div className="bg-dark text-white py-3">
       <div className="container-fluid">
-        <div className="row mb-5">
-          <div className="col-12">
-            <h1 className="display-4 fw-bold text-info">StreamWeaver</h1>
-            <p className="text-secondary">No-Code ETL Platform</p>
-          </div>
-        </div>
+        
 
-        <div className="row">
-          <div className="col-12">
-            <UploadZone onUpload={handleUpload} loading={loading} />
+        {!uploadedData && (
+          <div className="row">
+            <div className="col-12">
+              <UploadZone onUpload={handleUpload} loading={loading} />
+            </div>
           </div>
-        </div>
+        )}
 
+        <AppNavbar hasFile={!!uploadedData} />
+        <Hero collapsed={!!uploadedData} />
+        <CircuitBackground active={!!uploadedData} />
+        <PostUploadPanel uploadedData={uploadedData} step={uploadedData ? 3 : 1} />
         {uploadedData && (
           <>
             <div className="row mt-5">
@@ -101,18 +104,7 @@ function App() {
               </div>
             </div>
 
-            <div className="row mt-4">
-              <div className="col-12">
-                <button
-                  className="btn btn-info"
-                  onClick={() => setShowMapping(!showMapping)}
-                >
-                  {showMapping ? 'Hide Mapping' : 'Show Mapping'}
-                </button>
-              </div>
-            </div>
-
-            {showMapping && (
+            {uploadedData && (
               <div className="row mt-4">
                 <div className="col-12">
                   <ColumnMapping columns={uploadedData.data.columns} />
@@ -124,7 +116,7 @@ function App() {
               <>
                 <div className="row mt-4">
                   <div className="col-12">
-                    <ProgressBar fileId={fileId} customCode={customCode} onComplete={handleProcessComplete} />
+                    <ProgressBar fileId={fileId} customCode={customCode} columns={uploadedData?.data?.columns || []} onComplete={handleProcessComplete} />
                   </div>
                 </div>
 

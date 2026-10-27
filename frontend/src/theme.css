@@ -1,0 +1,48 @@
+body {
+  background: radial-gradient(circle at 20% 10%, #0d2a3a 0%, #05080f 55%, #05080f 100%) fixed;
+  min-height: 100vh;
+}
+
+.card {
+  background: rgba(15, 23, 42, 0.72) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(34, 211, 238, 0.25) !important;
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.12);
+  animation: fadeUp 0.5s ease both;
+  transition: box-shadow 0.25s ease;
+}
+
+.card:hover {
+  box-shadow: 0 0 26px rgba(34, 211, 238, 0.28);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+.btn {
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-primary,
+.btn-info,
+.btn-outline-info:hover {
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.35);
+}
+
+h1, h5 {
+  text-shadow: 0 0 12px rgba(34, 211, 238, 0.35);
+}
+
+.form-switch .form-check-input:checked {
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+}
+
+.progress-bar {
+  transition: width 0.3s ease;
+}

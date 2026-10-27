@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import CleaningOptions from './CleaningOptions';
 
-export default function ProgressBar({ fileId, customCode, onComplete }) {
+export default function ProgressBar({ fileId, customCode, columns = [], onComplete }) {
   const [percentage, setPercentage] = useState(0);
   const [processed, setProcessed] = useState(0);
   const [total, setTotal] = useState(0);
   const [rowsPerSec, setRowsPerSec] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [cleaning, setCleaning] = useState({});
   const startTimeRef = useRef(null);
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function ProgressBar({ fileId, customCode, onComplete }) {
       const response = await fetch(`http://localhost:5000/api/transform/${fileId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mappings: {}, customCode: customCode || '' })
+        body: JSON.stringify({ mappings: {}, customCode: customCode || '', cleaning })
       });
 
       const data = await response.json();
@@ -65,7 +67,8 @@ export default function ProgressBar({ fileId, customCode, onComplete }) {
         setPercentage(100);
         onComplete({
           transformedData: data.transformedData,
-          rowsProcessed: data.rowsProcessed
+          rowsProcessed: data.rowsProcessed,
+          cleaningReport: data.cleaningReport
         });
       } else {
         alert('Transform error: ' + data.error);
@@ -124,9 +127,12 @@ export default function ProgressBar({ fileId, customCode, onComplete }) {
           </div>
         </div>
       ) : (
-        <button className="btn btn-primary" onClick={startProcessing}>
-          Start Processing
-        </button>
+        <div>
+          <CleaningOptions columns={columns} onChange={setCleaning} />
+          <button className="btn btn-primary" onClick={startProcessing}>
+            Start Processing
+          </button>
+        </div>
       )}
     </div>
   );

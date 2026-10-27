@@ -16,14 +16,14 @@ class CSVParser {
           insideQuotes = !insideQuotes;
         }
       } else if (char === ',' && !insideQuotes) {
-        result.push(current.trim());
+        result.push(current);
         current = '';
       } else {
         current += char;
       }
     }
 
-    result.push(current.trim());
+    result.push(current);
     return result;
   }
 
