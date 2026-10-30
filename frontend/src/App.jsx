@@ -12,6 +12,7 @@ import InsertButton from './components/InsertButton'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 function App() {
+  const [mappings, setMappings] = useState({});
   const [uploadedData, setUploadedData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [fileId, setFileId] = useState(null)
@@ -80,7 +81,7 @@ function App() {
             {uploadedData && (
               <div className="row mt-4">
                 <div className="col-12">
-                  <ColumnMapping columns={uploadedData.data.columns} />
+                  <ColumnMapping columns={uploadedData.data.columns} onChange={({ mappings: m, customCode: c }) => { setMappings(m); setCustomCode(c); }} />
                 </div>
               </div>
             )}
@@ -89,7 +90,7 @@ function App() {
               <>
                 <div className="row mt-4">
                   <div className="col-12">
-                    <ProgressBar fileId={fileId} customCode={customCode} columns={uploadedData?.data?.columns || []} onComplete={handleProcessComplete} />
+                    <ProgressBar fileId={fileId} customCode={customCode} mappings={mappings} columns={uploadedData?.data?.columns || []} onComplete={handleProcessComplete} />
                   </div>
                 </div>
 

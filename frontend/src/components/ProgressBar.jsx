@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CleaningOptions from './CleaningOptions';
 
-export default function ProgressBar({ fileId, customCode, columns = [], onComplete }) {
+export default function ProgressBar({ fileId, customCode, mappings = {}, columns = [], onComplete }) {
   const [percentage, setPercentage] = useState(0);
   const [processed, setProcessed] = useState(0);
   const [total, setTotal] = useState(0);
@@ -59,7 +59,7 @@ export default function ProgressBar({ fileId, customCode, columns = [], onComple
       const response = await fetch(`http://localhost:5000/api/transform/${fileId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mappings: {}, customCode: customCode || '', cleaning })
+        body: JSON.stringify({ mappings, customCode: customCode || '', cleaning })
       });
 
       const data = await response.json();

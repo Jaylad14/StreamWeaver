@@ -5,39 +5,36 @@ class TransformEngine {
     this.isolate = new ivm.Isolate({ memoryLimit: 128 });
   }
 
-  async executeTransform(code, data) {
+  async executeTransform(code, rows) {
+    const context = await this.isolate.createContext();
     try {
-      const context = await this.isolate.createContext();
       const jail = context.global;
-
-      await jail.set('data', data);
-      await jail.set('result', null);
+      await jail.set('inputJson', JSON.stringify(rows));
 
       const script = `
-        result = (function() {
-          ${code}
-          return data;
+        (function () {
+          var input = JSON.parse(inputJson);
+          var output = input.map(function (row) {
+            ${code}
+            return row;
+          });
+          return JSON.stringify(output);
         })();
       `;
 
-      await context.eval(script);
-      const transformed = await jail.get('result');
-
-      return { success: true, data: transformed };
+      const outputJson = await context.eval(script, { timeout: 5000 });
+      return { success: true, data: JSON.parse(outputJson) };
     } catch (error) {
       return { success: false, error: error.message };
+    } finally {
+      context.release();
     }
   }
 
   async validateCode(code) {
     try {
       const context = await this.isolate.createContext();
-      const testScript = `
-        (function() {
-          ${code}
-        })();
-      `;
-      await context.eval(testScript);
+      await context.eval(`(function () { ${code} })();`);
       return { valid: true };
     } catch (error) {
       return { valid: false, error: error.message };

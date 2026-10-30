@@ -28,6 +28,18 @@ const sendProgress = (fileId, processed, total, startedAt) => {
   });
 };
 
+const applyMapping = (rows, mappings) => {
+  const pairs = Object.entries(mappings || {}).filter(([src, dest]) => src && dest);
+  if (pairs.length === 0) return rows;
+  return rows.map((row) => {
+    const out = {};
+    for (const [src, dest] of pairs) {
+      out[dest] = row[src] === undefined ? null : row[src];
+    }
+    return out;
+  });
+};
+
 router.post('/:fileId', async (req, res) => {
   const { fileId } = req.params;
   const cleaning = req.body.cleaning || {};
@@ -61,17 +73,27 @@ router.post('/:fileId', async (req, res) => {
     sendProgress(fileId, 0, total, startedAt);
     const { rows: cleanedRows, report: cleaningReport } = cleanRows(processedRows, cleaning);
     sendProgress(fileId, total, total, startedAt);
+    const customCode = (req.body.customCode || '').trim();
+    let codeRows = cleanedRows;
+    if (customCode) {
+      const result = await transformEngine.executeTransform(customCode, cleanedRows);
+      if (!result.success) {
+        return res.status(400).json({ error: 'Custom code error: ' + result.error });
+      }
+      codeRows = result.data;
+    }
+    const finalRows = applyMapping(codeRows, req.body.mappings || {});
     console.log('CLEANING REPORT:', cleaningReport);
 
     console.log('SENDING RESPONSE');
     res.json({
       success: true,
-      rowsProcessed: cleanedRows.length,
-      rowsSuccessful: cleanedRows.length,
+      rowsProcessed: finalRows.length,
+      rowsSuccessful: finalRows.length,
       rowsFailed: 0,
       cleaningReport,
-      sampleRows: cleanedRows.slice(0, 5),
-      transformedData: cleanedRows
+      sampleRows: finalRows.slice(0, 5),
+      transformedData: finalRows
     });
   } catch (error) {
     console.error('TRANSFORM ERROR:', error.message);

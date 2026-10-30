@@ -1,31 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CustomCode from './CustomCode';
 
-export default function ColumnMapping({ columns }) {
+export default function ColumnMapping({ columns = [], onChange }) {
   const [mappings, setMappings] = useState({});
   const [customCode, setCustomCode] = useState('');
+  const [selectedSource, setSelectedSource] = useState(null);
 
   const destinationFields = [
     'id', 'first_name', 'last_name', 'email', 'age', 'city', 'state',
     'category_preference', 'account_status', 'score', 'is_verified', 'filter_flags'
   ];
 
-  const handleMap = (source, dest) => {
-    setMappings({
-      ...mappings,
-      [source]: dest
-    });
+  useEffect(() => {
+    if (onChange) onChange({ mappings, customCode });
+  }, [mappings, customCode]);
+
+  const handleDestinationClick = (dest) => {
+    if (!selectedSource) return;
+    const next = {};
+    for (const [src, d] of Object.entries(mappings)) {
+      if (d !== dest && src !== selectedSource) next[src] = d;
+    }
+    next[selectedSource] = dest;
+    setMappings(next);
+    setSelectedSource(null);
   };
 
-  const handleDownload = () => {
-    const config = { mappings, customCode };
-    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'mapping.json';
-    a.click();
+  const clearMapping = (src) => {
+    const next = { ...mappings };
+    delete next[src];
+    setMappings(next);
   };
+
+  const usedDestinations = Object.values(mappings);
 
   return (
     <div className="card bg-dark border-info">
@@ -34,18 +41,36 @@ export default function ColumnMapping({ columns }) {
       </div>
 
       <div className="card-body">
+        <p className="small text-body-secondary mb-3">
+          Click a source column, then click the destination field it should map to.
+        </p>
+
         <div className="row">
           <div className="col-md-6">
             <h6 className="text-info">Source Columns</h6>
-            <div className="list-group bg-dark">
+            <div className="list-group">
               {columns.map((col) => (
-                <div key={col} className="list-group-item bg-dark border-secondary">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <span className="text-light">{col}</span>
-                    <span className="badge bg-info text-dark">
-                      {mappings[col] ? mappings[col] : '?'}
+                <div
+                  key={col}
+                  className={`list-group-item d-flex justify-content-between align-items-center bg-dark border-secondary ${selectedSource === col ? 'border-info' : ''}`}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setSelectedSource(selectedSource === col ? null : col)}
+                >
+                  <span className="text-light">{col}</span>
+                  <span className="d-flex align-items-center gap-2">
+                    <span className={`badge ${mappings[col] ? 'bg-info text-dark' : 'bg-secondary'}`}>
+                      {mappings[col] || '?'}
                     </span>
-                  </div>
+                    {mappings[col] && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary py-0 px-1"
+                        onClick={(e) => { e.stopPropagation(); clearMapping(col); }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
@@ -53,30 +78,26 @@ export default function ColumnMapping({ columns }) {
 
           <div className="col-md-6">
             <h6 className="text-info">Destination Fields</h6>
-            <div className="list-group bg-dark">
+            <div className="list-group">
               {destinationFields.map((dest) => (
                 <button
                   key={dest}
-                  className="list-group-item list-group-item-action bg-dark border-secondary text-info"
-                  onClick={() => {
-                    const source = columns[Object.values(mappings).indexOf(dest) >= 0 ? Object.keys(mappings).find(k => mappings[k] === dest) : -1];
-                    if (source) {
-                      handleMap(source, dest);
-                    }
-                  }}
+                  type="button"
+                  className={`list-group-item list-group-item-action bg-dark border-secondary d-flex justify-content-between align-items-center ${usedDestinations.includes(dest) ? 'text-info' : 'text-light'}`}
+                  disabled={!selectedSource}
+                  onClick={() => handleDestinationClick(dest)}
                 >
                   {dest}
+                  {usedDestinations.includes(dest) && <span className="badge bg-info text-dark">mapped</span>}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        <CustomCode onCodeChange={setCustomCode} />
-
-        <button className="btn btn-success w-100 mt-3" onClick={handleDownload}>
-          Download Config
-        </button>
+        <div className="mt-4">
+          <CustomCode onCodeChange={setCustomCode} />
+        </div>
       </div>
     </div>
   );
