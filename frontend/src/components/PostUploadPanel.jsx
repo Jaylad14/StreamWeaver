@@ -2,18 +2,16 @@ import React from 'react';
 
 const steps = ['Upload', 'Map', 'Clean', 'Process', 'Insert'];
 
-const formatSize = (size) => {
-  if (typeof size === 'number') return (size / 1048576).toFixed(2) + ' MB';
-  return size ?? '-';
-};
+const formatSize = (size) => (size != null ? size + ' MB' : '-');
 
-export default function PostUploadPanel({ uploadedData, step = 1 }) {
+export default function PostUploadPanel({ uploadedData, step = 1, quality = null }) {
   const d = uploadedData || {};
   const info = d.data || {};
   const name = d.file?.name ?? '-';
   const rows = d.data?.rowCount ?? '-';
-  const columns = info.columns?.length ?? d.columns?.length ?? '-';
-  const size = d.file?.sizeMB != null ? d.file.sizeMB + ' MB' : '-';
+  const columns = info.columns?.length ?? '-';
+  const size = formatSize(d.file?.sizeMB);
+  const fmt = (n) => (typeof n === 'number' ? n.toLocaleString() : '-');
 
   const stats = [
     { label: 'Rows', value: typeof rows === 'number' ? rows.toLocaleString() : rows },
@@ -22,10 +20,10 @@ export default function PostUploadPanel({ uploadedData, step = 1 }) {
     { label: 'File name', value: name }
   ];
 
-  const quality = [
-    { label: 'Empty cells', hint: 'Counted during cleaning' },
-    { label: 'Duplicate rows', hint: 'Counted during cleaning' },
-    { label: 'Untrimmed text', hint: 'Counted during cleaning' }
+  const quality3 = [
+    { label: 'Empty cells', value: fmt(quality?.emptyCells) },
+    { label: 'Duplicate rows', value: fmt(quality?.duplicateRows) },
+    { label: 'Untrimmed text', value: fmt(quality?.untrimmedText) }
   ];
 
   return (
@@ -61,13 +59,14 @@ export default function PostUploadPanel({ uploadedData, step = 1 }) {
         ))}
       </div>
 
-      <h6 className="text-info mb-3">Data quality</h6>
+      <h6 className="text-info mb-1">Data quality</h6>
+      <p className="small text-body-secondary mb-3">Counted from the uploaded file, before cleaning.</p>
       <div className="row g-3">
-        {quality.map((q) => (
+        {quality3.map((q) => (
           <div className="col-12 col-md-4" key={q.label}>
             <div className="border rounded-3 p-3 h-100">
               <div className="small text-body-secondary">{q.label}</div>
-              <div className="text-body-secondary small fst-italic">{q.hint}</div>
+              <div className="fw-semibold fs-5">{q.value}</div>
             </div>
           </div>
         ))}

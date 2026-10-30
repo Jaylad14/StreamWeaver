@@ -2,7 +2,7 @@ import AppNavbar from './components/AppNavbar';
 import Hero from './components/Hero';
 import PostUploadPanel from './components/PostUploadPanel';
 import CircuitBackground from './components/CircuitBackground';
-import { useState } from 'react'
+import { useState, useEffect } from "react";
 import UploadZone from './components/UploadZone'
 import DataGrid from './components/DataGrid'
 import ColumnMapping from './components/ColumnMapping'
@@ -13,12 +13,21 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 
 function App() {
   const [mappings, setMappings] = useState({});
+  const [quality, setQuality] = useState(null);
   const [uploadedData, setUploadedData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [fileId, setFileId] = useState(null)
   const [transformedData, setTransformedData] = useState(null)
   const [customCode, setCustomCode] = useState('')
   const [rowsProcessed, setRowsProcessed] = useState(0)
+
+  useEffect(() => {
+    if (!fileId) return;
+    fetch('http://localhost:5000/api/quality/' + fileId)
+      .then((r) => r.json())
+      .then((q) => setQuality(q))
+      .catch(() => setQuality(null));
+  }, [fileId]);
 
   const handleUpload = async (file) => {
     setLoading(true)
@@ -59,8 +68,9 @@ function App() {
   }
 
   return (
-    <div className="bg-dark text-white py-3">
+    <div className="bg-dark text-white pb-3 pt-5 mt-4">
       <div className="container-fluid">
+        <AppNavbar hasFile={!!uploadedData} />
         
 
         {!uploadedData && (
@@ -71,10 +81,9 @@ function App() {
           </div>
         )}
 
-        <AppNavbar hasFile={!!uploadedData} />
         <Hero collapsed={!!uploadedData} />
         <CircuitBackground active={!!uploadedData} />
-        <PostUploadPanel uploadedData={uploadedData} step={uploadedData ? 3 : 1} />
+        <PostUploadPanel uploadedData={uploadedData} step={uploadedData ? 3 : 1} quality={quality} />
         {uploadedData && (
           <>
 

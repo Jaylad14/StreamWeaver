@@ -24,12 +24,14 @@ const uploadRoutes = require('./routes/upload');
 const dataRoutes = require('./routes/data');
 const transformRoutes = require('./routes/transform');
 const bulkInsertRoutes = require('./routes/bulkInsert');
+const qualityRoutes = require('./routes/quality');
 const WSManager = require('./utils/wsManager');
 
 app.use('/api/upload', uploadRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/transform', transformRoutes);
 app.use('/api/bulkInsert', bulkInsertRoutes);
+app.use('/api/quality', qualityRoutes);
 
 const wsManager = new WSManager(server);
 transformRoutes.setWSManager(wsManager);
