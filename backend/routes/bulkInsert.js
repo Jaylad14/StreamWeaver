@@ -35,7 +35,7 @@ router.post('/:fileId', async (req, res) => {
     });
   } catch (error) {
     console.error('Bulk insert error:', error);
-    res.status(500).json({ error: 'Bulk insert failed: ' + error.message });
+    res.status(500).json({ error: 'Insert failed. Check the server log.' });
   }
 });
 

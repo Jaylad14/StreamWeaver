@@ -35,7 +35,7 @@ router.post('/', (req, res) => {
       return;
     }
 
-    fileId = Date.now().toString();
+    fileId = require('crypto').randomUUID();
     const sanitizedName = `${fileId}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
     filePath = path.join(TMP_DIR, sanitizedName);
 
@@ -121,7 +121,7 @@ router.post('/', (req, res) => {
           }).catch((error) => {
             console.error('CSV parse error:', error.message);
             fs.unlinkSync(filePath);
-            sendResponse(400, { error: 'CSV parsing error: ' + error.message });
+            sendResponse(400, { error: 'The CSV file could not be read. Check its format.' });
           });
         }
       } catch (error) {
@@ -129,7 +129,7 @@ router.post('/', (req, res) => {
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
-        sendResponse(400, { error: 'Processing error: ' + error.message });
+        sendResponse(400, { error: 'The file could not be processed.' });
       }
     });
 
@@ -138,13 +138,13 @@ router.post('/', (req, res) => {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
-      sendResponse(400, { error: 'Write error: ' + error.message });
+      sendResponse(500, { error: 'The file could not be saved.' });
     });
   });
 
   bb.on('error', (error) => {
     console.error('Upload error:', error.message);
-    sendResponse(400, { error: error.message });
+    sendResponse(400, { error: 'Upload failed.' });
   });
 
   req.pipe(bb);
