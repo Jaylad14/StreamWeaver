@@ -76,7 +76,9 @@ function App() {
         {!uploadedData && (
           <div className="row">
             <div className="col-12">
-              <UploadZone onUpload={handleUpload} loading={loading} />
+              <div id="upload">
+                <UploadZone onUpload={handleUpload} loading={loading} />
+            </div>
             </div>
           </div>
         )}
@@ -90,7 +92,9 @@ function App() {
             {uploadedData && (
               <div className="row mt-4">
                 <div className="col-12">
-                  <ColumnMapping columns={uploadedData.data.columns} onChange={({ mappings: m, customCode: c }) => { setMappings(m); setCustomCode(c); }} />
+                  <div id="map">
+                    <ColumnMapping columns={uploadedData.data.columns} onChange={({ mappings: m, customCode: c }) => { setMappings(m); setCustomCode(c); }} />
+                </div>
                 </div>
               </div>
             )}
@@ -99,7 +103,9 @@ function App() {
               <>
                 <div className="row mt-4">
                   <div className="col-12">
-                    <ProgressBar fileId={fileId} customCode={customCode} mappings={mappings} columns={uploadedData?.data?.columns || []} onComplete={handleProcessComplete} />
+                    <div id="process">
+                      <ProgressBar fileId={fileId} customCode={customCode} mappings={mappings} columns={uploadedData?.data?.columns || []} onComplete={handleProcessComplete} />
+                  </div>
                   </div>
                 </div>
 
@@ -113,7 +119,9 @@ function App() {
 
                     <div className="row mt-4">
                       <div className="col-12">
-                        <InsertButton fileId={fileId} transformedData={transformedData} />
+                        <div id="insert">
+                          <InsertButton fileId={fileId} transformedData={transformedData} />
+                      </div>
                       </div>
                     </div>
                   </>
