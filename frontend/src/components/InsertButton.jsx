@@ -1,9 +1,12 @@
 import { useState } from 'react'
 
 export default function InsertButton({ fileId, transformedData, onComplete }) {
+  const [confirming, setConfirming] = useState(false)
   const [inserting, setInserting] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+
+  const count = transformedData ? transformedData.length : 0
 
   const handleInsert = async () => {
     if (!fileId || !transformedData || transformedData.length === 0) {
@@ -32,13 +35,14 @@ export default function InsertButton({ fileId, transformedData, onComplete }) {
           insertedRows: data.insertedRows,
           recordId: data.recordId
         })
+        setConfirming(false)
         if (onComplete) onComplete()
       } else {
         setError(data.error || 'Insert failed')
       }
-    } catch (error) {
-      console.error('Insert error:', error)
-      setError(error.message)
+    } catch (err) {
+      console.error('Insert error:', err)
+      setError(err.message)
     } finally {
       setInserting(false)
     }
@@ -51,35 +55,55 @@ export default function InsertButton({ fileId, transformedData, onComplete }) {
       </div>
 
       <div className="card-body">
-        {!result && !error && (
+        {!result && !confirming && !error && (
           <button
             className="btn btn-success w-100"
-            onClick={handleInsert}
-            disabled={inserting || !transformedData}
+            onClick={() => setConfirming(true)}
+            disabled={!transformedData || count === 0}
           >
-            {inserting ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                Inserting...
-              </>
-            ) : (
-              `Insert ${transformedData ? transformedData.length : 0} Rows`
-            )}
+            Insert {count} Rows
           </button>
+        )}
+
+        {!result && confirming && (
+          <div>
+            <p className="mb-2">
+              You are about to insert <strong>{count.toLocaleString()}</strong> rows into the
+              <code> processeddatas</code> collection. This cannot be undone from this screen.
+            </p>
+            <div className="d-flex gap-2">
+              <button className="btn btn-success" onClick={handleInsert} disabled={inserting}>
+                {inserting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                    Inserting...
+                  </>
+                ) : (
+                  'Confirm insert'
+                )}
+              </button>
+              <button className="btn btn-outline-secondary" onClick={() => setConfirming(false)} disabled={inserting}>
+                Cancel
+              </button>
+            </div>
+          </div>
         )}
 
         {result && (
           <div className="alert alert-success mb-0">
-            <h6 className="alert-heading">✅ Success!</h6>
-            <p className="mb-1">Inserted <strong>{result.insertedRows}</strong> rows</p>
+            <h6 className="alert-heading">Success</h6>
+            <p className="mb-1">Inserted <strong>{result.insertedRows.toLocaleString()}</strong> rows</p>
             <small>Record ID: {result.recordId}</small>
           </div>
         )}
 
         {error && (
           <div className="alert alert-danger mb-0">
-            <h6 className="alert-heading">❌ Error</h6>
-            <p className="mb-0">{error}</p>
+            <h6 className="alert-heading">Error</h6>
+            <p className="mb-2">{error}</p>
+            <button className="btn btn-outline-danger btn-sm" onClick={() => setError(null)}>
+              Dismiss
+            </button>
           </div>
         )}
       </div>

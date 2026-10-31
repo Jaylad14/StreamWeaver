@@ -1,8 +1,10 @@
 const express = require('express');
-const ProcessedData = require('../models/ProcessedData');
+const crypto = require('crypto');
+const RowData = require('../models/RowData');
 const { getFileInfo } = require('../utils/fileStore');
 
 const router = express.Router();
+const BATCH_SIZE = 5000;
 
 router.post('/:fileId', async (req, res) => {
   const { fileId } = req.params;
@@ -18,20 +20,27 @@ router.post('/:fileId', async (req, res) => {
       return res.status(400).json({ error: 'No data to insert' });
     }
 
-    const processedData = new ProcessedData({
-      fileId: fileId,
-      fileName: fileName || fileInfo.name,
-      totalRows: data.length,
-      processedRows: data.length,
-      data: data
-    });
+    const batchId = crypto.randomUUID();
+    const name = fileName || fileInfo.name;
+    let inserted = 0;
 
-    await processedData.save();
+    for (let start = 0; start < data.length; start += BATCH_SIZE) {
+      const slice = data.slice(start, start + BATCH_SIZE);
+      const docs = slice.map((row, i) => ({
+        batchId,
+        fileId,
+        fileName: name,
+        rowIndex: start + i,
+        data: row
+      }));
+      await RowData.insertMany(docs, { ordered: true });
+      inserted += docs.length;
+    }
 
     res.json({
       success: true,
-      insertedRows: data.length,
-      recordId: processedData._id
+      insertedRows: inserted,
+      recordId: batchId
     });
   } catch (error) {
     console.error('Bulk insert error:', error);
@@ -43,21 +52,18 @@ router.get('/:fileId', async (req, res) => {
   const { fileId } = req.params;
 
   try {
-    const record = await ProcessedData.findOne({ fileId });
-    
-    if (!record) {
+    const count = await RowData.countDocuments({ fileId });
+    if (count === 0) {
       return res.status(404).json({ error: 'No processed data found' });
     }
-
+    const sample = await RowData.findOne({ fileId }).lean();
     res.json({
       success: true,
       record: {
-        id: record._id,
-        fileId: record.fileId,
-        fileName: record.fileName,
-        uploadedAt: record.uploadedAt,
-        totalRows: record.totalRows,
-        processedRows: record.processedRows
+        batchId: sample.batchId,
+        fileId,
+        fileName: sample.fileName,
+        totalRows: count
       }
     });
   } catch (error) {

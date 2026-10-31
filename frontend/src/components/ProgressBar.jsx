@@ -9,7 +9,10 @@ export default function ProgressBar({ fileId, customCode, mappings = {}, columns
   const [isProcessing, setIsProcessing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [cleaning, setCleaning] = useState({});
+  const [message, setMessage] = useState('');
   const startTimeRef = useRef(null);
+  const wsRef = useRef(null);
+  const abortRef = useRef(null);
 
   useEffect(() => {
     if (!isProcessing) return;
@@ -27,9 +30,17 @@ export default function ProgressBar({ fileId, customCode, mappings = {}, columns
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
+  const closeSocket = () => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  };
+
   const connect = () =>
     new Promise((resolve, reject) => {
-      const ws = new WebSocket('ws://localhost:5000');
+      const ws = new WebSocket('ws://localhost:5000/?token=' + encodeURIComponent(localStorage.getItem('sw_token') || ''));
+      wsRef.current = ws;
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'progress' && data.fileId === fileId) {
@@ -44,6 +55,7 @@ export default function ProgressBar({ fileId, customCode, mappings = {}, columns
     });
 
   const startProcessing = async () => {
+    setMessage('');
     setIsProcessing(true);
     setPercentage(0);
     setProcessed(0);
@@ -52,34 +64,48 @@ export default function ProgressBar({ fileId, customCode, mappings = {}, columns
     setElapsed(0);
     startTimeRef.current = Date.now();
 
-    let ws = null;
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      ws = await connect();
+      await connect();
 
       const response = await fetch(`http://localhost:5000/api/transform/${fileId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mappings, customCode: customCode || '', cleaning })
+        body: JSON.stringify({ mappings, customCode: customCode || '', cleaning }),
+        signal: controller.signal
       });
 
       const data = await response.json();
 
       if (data.success) {
         setPercentage(100);
+        setMessage('Processing complete. Review the preview, then insert.');
         onComplete({
           transformedData: data.transformedData,
           rowsProcessed: data.rowsProcessed,
           cleaningReport: data.cleaningReport
         });
       } else {
-        alert('Transform error: ' + data.error);
+        setMessage('Transform error: ' + data.error);
       }
     } catch (error) {
-      alert('Failed to start transform: ' + error.message);
+      if (controller.signal.aborted) {
+        setMessage('Cancelled. Nothing was saved.');
+      } else {
+        setMessage('Failed: ' + error.message);
+      }
     } finally {
-      if (ws) ws.close();
+      closeSocket();
+      abortRef.current = null;
       setIsProcessing(false);
     }
+  };
+
+  const cancelProcessing = () => {
+    if (abortRef.current) abortRef.current.abort();
+    closeSocket();
   };
 
   return (
@@ -101,7 +127,7 @@ export default function ProgressBar({ fileId, customCode, mappings = {}, columns
             </div>
           </div>
 
-          <div className="row g-2 text-center">
+          <div className="row g-2 text-center mb-3">
             <div className="col-md-3">
               <div className="border rounded p-2">
                 <div className="fw-bold">{processed.toLocaleString()} / {total.toLocaleString()}</div>
@@ -127,6 +153,10 @@ export default function ProgressBar({ fileId, customCode, mappings = {}, columns
               </div>
             </div>
           </div>
+
+          <button className="btn btn-outline-danger btn-sm" onClick={cancelProcessing}>
+            Cancel processing
+          </button>
         </div>
       ) : (
         <div>
@@ -134,6 +164,7 @@ export default function ProgressBar({ fileId, customCode, mappings = {}, columns
           <button className="btn btn-primary" onClick={startProcessing}>
             Start Processing
           </button>
+          {message && <div className="small text-body-secondary mt-2">{message}</div>}
         </div>
       )}
     </div>

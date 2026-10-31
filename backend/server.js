@@ -14,7 +14,7 @@ app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json({ limit: '50mb' }));
@@ -25,13 +25,16 @@ const dataRoutes = require('./routes/data');
 const transformRoutes = require('./routes/transform');
 const bulkInsertRoutes = require('./routes/bulkInsert');
 const qualityRoutes = require('./routes/quality');
+const authRoutes = require('./routes/auth');
+const requireAuth = require('./middleware/requireAuth');
 const WSManager = require('./utils/wsManager');
 
-app.use('/api/upload', uploadRoutes);
-app.use('/api/data', dataRoutes);
-app.use('/api/transform', transformRoutes);
-app.use('/api/bulkInsert', bulkInsertRoutes);
-app.use('/api/quality', qualityRoutes);
+app.use('/api/upload', requireAuth, uploadRoutes);
+app.use('/api/data', requireAuth, dataRoutes);
+app.use('/api/transform', requireAuth, transformRoutes);
+app.use('/api/bulkInsert', requireAuth, bulkInsertRoutes);
+app.use('/api/quality', requireAuth, qualityRoutes);
+app.use('/api/auth', authRoutes);
 
 const wsManager = new WSManager(server);
 transformRoutes.setWSManager(wsManager);

@@ -1,4 +1,5 @@
 import AppNavbar from './components/AppNavbar';
+import LoginPage from './components/LoginPage';
 import Hero from './components/Hero';
 import PostUploadPanel from './components/PostUploadPanel';
 import CircuitBackground from './components/CircuitBackground';
@@ -14,6 +15,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 function App() {
   const [mappings, setMappings] = useState({});
   const [quality, setQuality] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('sw_token'));
   const [uploadedData, setUploadedData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [fileId, setFileId] = useState(null)
@@ -67,10 +69,29 @@ function App() {
     setRowsProcessed(data.rowsProcessed)
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('sw_token');
+    setToken(null);
+  };
+
+  const handleNewFile = () => {
+    setUploadedData(null);
+    setFileId(null);
+    setTransformedData(null);
+    setRowsProcessed(0);
+    setCustomCode('');
+    setMappings({});
+    setQuality(null);
+  };
+
+  if (!token) {
+    return <LoginPage onLogin={setToken} />;
+  }
+
   return (
     <div className="bg-dark text-white pb-3 pt-5 mt-4">
       <div className="container-fluid">
-        <AppNavbar hasFile={!!uploadedData} />
+        <AppNavbar hasFile={!!uploadedData} onLogout={handleLogout} />
         
 
         {!uploadedData && (
@@ -121,6 +142,13 @@ function App() {
                       <div className="col-12">
                         <div id="insert">
                           <InsertButton fileId={fileId} transformedData={transformedData} />
+                        {transformedData && (
+                          <div className="text-center mt-3">
+                            <button type="button" className="btn btn-outline-info" onClick={handleNewFile}>
+                              Start a new file
+                            </button>
+                          </div>
+                        )}
                       </div>
                       </div>
                     </div>

@@ -1,11 +1,20 @@
 const WebSocket = require('ws');
+const jwt = require('jsonwebtoken');
+const { URL } = require('url');
 
 class WSManager {
   constructor(server) {
     this.wss = new WebSocket.Server({ server });
     this.clients = new Set();
 
-    this.wss.on('connection', (ws) => {
+    this.wss.on('connection', (ws, req) => {
+      try {
+        const token = new URL(req.url, 'http://localhost').searchParams.get('token');
+        jwt.verify(token, process.env.JWT_SECRET);
+      } catch (error) {
+        ws.close(1008, 'Sign in required');
+        return;
+      }
       this.clients.add(ws);
 
       ws.on('close', () => {

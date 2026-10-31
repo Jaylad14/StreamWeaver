@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function AppNavbar({ hasFile }) {
+export default function AppNavbar({ hasFile, onLogout }) {
   const links = [
     { label: 'Upload', target: 'upload' },
     { label: 'Map', target: 'map' },
@@ -39,6 +39,11 @@ export default function AppNavbar({ hasFile }) {
         <span className={`badge rounded-pill ${hasFile ? 'text-bg-info' : 'text-bg-secondary'}`}>
           {hasFile ? 'File loaded' : 'Waiting for file'}
         </span>
+        {onLogout && (
+          <button type="button" className="btn btn-sm btn-outline-secondary ms-3" onClick={onLogout}>
+            Sign out
+          </button>
+        )}
       </div>
     </nav>
   );

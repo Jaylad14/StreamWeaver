@@ -97,7 +97,8 @@ router.post('/:fileId', async (req, res) => {
     });
   } catch (error) {
     console.error('TRANSFORM ERROR:', error.message);
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Processing failed. Check the server log.' });
   }
 });
 
