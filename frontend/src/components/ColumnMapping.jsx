@@ -5,6 +5,21 @@ export default function ColumnMapping({ columns = [], onChange }) {
   const [mappings, setMappings] = useState({});
   const [customCode, setCustomCode] = useState('');
   const [selectedSource, setSelectedSource] = useState(null);
+  const [history, setHistory] = useState([]);
+
+  const commit = (next) => {
+    setHistory((h) => [...h, mappings]);
+    setMappings(next);
+  };
+
+  const undo = () => {
+    setHistory((h) => {
+      if (h.length === 0) return h;
+      const previous = h[h.length - 1];
+      setMappings(previous);
+      return h.slice(0, -1);
+    });
+  };
 
   const destinationFields = [
     'id', 'first_name', 'last_name', 'email', 'age', 'city', 'state',
@@ -22,14 +37,14 @@ export default function ColumnMapping({ columns = [], onChange }) {
       if (d !== dest && src !== selectedSource) next[src] = d;
     }
     next[selectedSource] = dest;
-    setMappings(next);
+    commit(next);
     setSelectedSource(null);
   };
 
   const clearMapping = (src) => {
     const next = { ...mappings };
     delete next[src];
-    setMappings(next);
+    commit(next);
   };
 
   const usedDestinations = Object.values(mappings);
@@ -41,6 +56,11 @@ export default function ColumnMapping({ columns = [], onChange }) {
       </div>
 
       <div className="card-body">
+        <div className="d-flex justify-content-end mb-2">
+          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={undo} disabled={history.length === 0}>
+            Undo last change
+          </button>
+        </div>
         <p className="small text-body-secondary mb-3">
           Click a source column, then click the destination field it should map to.
         </p>

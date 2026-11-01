@@ -3,6 +3,7 @@ const busboy = require('busboy');
 const fs = require('fs');
 const path = require('path');
 const { saveFileInfo } = require('../utils/fileStore');
+const { logActivity } = require('../utils/activity');
 const CSVParser = require('../utils/csvParser');
 const FileValidator = require('../utils/fileValidator');
 
@@ -66,6 +67,7 @@ router.post('/', (req, res) => {
             columns: columns
           });
 
+          logActivity(req, { action: 'upload', status: 'success', fileName, fileId, rowCount: rows.length });
           sendResponse(200, {
             success: true,
             fileId: fileId,
@@ -98,6 +100,7 @@ router.post('/', (req, res) => {
               columns: headers
             });
 
+            logActivity(req, { action: 'upload', status: 'success', fileName, fileId, rowCount: rows.length });
             sendResponse(200, {
               success: true,
               fileId: fileId,

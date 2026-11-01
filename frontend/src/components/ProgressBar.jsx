@@ -22,6 +22,8 @@ export default function ProgressBar({ fileId, customCode, mappings = {}, columns
     return () => clearInterval(interval);
   }, [isProcessing]);
 
+  const unmappedColumns = columns.filter((col) => !mappings[col]);
+
   const remaining = rowsPerSec > 0 ? Math.max(0, (total - processed) / rowsPerSec) : 0;
 
   const formatTime = (seconds) => {
@@ -161,6 +163,11 @@ export default function ProgressBar({ fileId, customCode, mappings = {}, columns
       ) : (
         <div>
           <CleaningOptions columns={columns} onChange={setCleaning} />
+          {unmappedColumns.length > 0 && (
+            <div className="alert alert-warning py-2 small mb-3">
+              These columns have no mapping and will be left out of the output: <strong>{unmappedColumns.join(', ')}</strong>
+            </div>
+          )}
           <button className="btn btn-primary" onClick={startProcessing}>
             Start Processing
           </button>

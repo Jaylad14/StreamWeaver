@@ -17,8 +17,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(require('helmet')());
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
 
 const uploadRoutes = require('./routes/upload');
 const dataRoutes = require('./routes/data');
@@ -27,13 +28,19 @@ const bulkInsertRoutes = require('./routes/bulkInsert');
 const qualityRoutes = require('./routes/quality');
 const authRoutes = require('./routes/auth');
 const requireAuth = require('./middleware/requireAuth');
+const apiLimit = require('./middleware/apiLimit');
+const requireAdmin = require('./middleware/requireAdmin');
+const adminRoutes = require('./routes/admin');
+const adminManageRoutes = require('./routes/adminManage');
 const WSManager = require('./utils/wsManager');
 
-app.use('/api/upload', requireAuth, uploadRoutes);
-app.use('/api/data', requireAuth, dataRoutes);
-app.use('/api/transform', requireAuth, transformRoutes);
-app.use('/api/bulkInsert', requireAuth, bulkInsertRoutes);
-app.use('/api/quality', requireAuth, qualityRoutes);
+app.use('/api/upload', requireAuth, apiLimit, uploadRoutes);
+app.use('/api/data', requireAuth, apiLimit, dataRoutes);
+app.use('/api/transform', requireAuth, apiLimit, transformRoutes);
+app.use('/api/bulkInsert', requireAuth, apiLimit, bulkInsertRoutes);
+app.use('/api/quality', requireAuth, apiLimit, qualityRoutes);
+app.use('/api/admin', requireAuth, apiLimit, requireAdmin, adminRoutes);
+app.use('/api/admin', requireAuth, apiLimit, requireAdmin, adminManageRoutes);
 app.use('/api/auth', authRoutes);
 
 const wsManager = new WSManager(server);

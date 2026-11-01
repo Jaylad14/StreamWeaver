@@ -4,6 +4,7 @@ const { getFileInfo } = require('../utils/fileStore');
 const TransformEngine = require('../utils/transformEngine');
 const CSVParser = require('../utils/csvParser');
 const { cleanRows } = require('../utils/cleaner');
+const { logActivity } = require('../utils/activity');
 
 const router = express.Router();
 const transformEngine = new TransformEngine();
@@ -86,6 +87,7 @@ router.post('/:fileId', async (req, res) => {
     console.log('CLEANING REPORT:', cleaningReport);
 
     console.log('SENDING RESPONSE');
+    logActivity(req, { action: 'process', status: 'success', fileName: fileInfo.name, fileId, rowCount: finalRows.length });
     res.json({
       success: true,
       rowsProcessed: finalRows.length,
@@ -97,6 +99,7 @@ router.post('/:fileId', async (req, res) => {
     });
   } catch (error) {
     console.error('TRANSFORM ERROR:', error.message);
+    logActivity(req, { action: 'process', status: 'failed', fileId: req.params.fileId, rowCount: 0 });
     console.error(error);
     res.status(500).json({ error: 'Processing failed. Check the server log.' });
   }

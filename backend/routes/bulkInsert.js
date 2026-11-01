@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const RowData = require('../models/RowData');
 const { getFileInfo } = require('../utils/fileStore');
+const { logActivity } = require('../utils/activity');
 
 const router = express.Router();
 const BATCH_SIZE = 5000;
@@ -37,6 +38,7 @@ router.post('/:fileId', async (req, res) => {
       inserted += docs.length;
     }
 
+    logActivity(req, { action: 'insert', status: 'success', fileName: name, fileId, rowCount: inserted });
     res.json({
       success: true,
       insertedRows: inserted,
@@ -44,6 +46,7 @@ router.post('/:fileId', async (req, res) => {
     });
   } catch (error) {
     console.error('Bulk insert error:', error);
+    logActivity(req, { action: 'insert', status: 'failed', fileId: req.params.fileId, rowCount: 0 });
     res.status(500).json({ error: 'Insert failed. Check the server log.' });
   }
 });
